@@ -67,8 +67,12 @@ class Yosida95Bot(SingleServerIRCBot):
                     else:
                         handlers.remove(handler)
 
-        session.commit()
-        session.close()
+        try:
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
 
     def on_join(self, connection, event):
         if connection.get_nickname() in self.channels[event.target].opers():
