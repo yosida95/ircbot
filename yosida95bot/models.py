@@ -25,7 +25,7 @@ class Message(Base):
     created_at = Column(DateTime(), nullable=False)
 
     def __init__(self, channel, nickname, message):
-        self.id = uuid.uuid4().hex
+        self.id = unicode(uuid.uuid4().hex)
         self.channel = channel
         self.nickname = nickname
         self.message = message
