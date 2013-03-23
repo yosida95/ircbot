@@ -6,7 +6,8 @@ import os.path
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yosida95bot import Yosida95Bot
+from yosida95bot import initialize
+from yosida95bot.bot import Yosida95Bot
 
 
 def get_args():
@@ -21,8 +22,9 @@ def get_args():
 
 
 if __name__ == u'__main__':
-    args = get_args()
+    initialize()
 
+    args = get_args()
     bot = Yosida95Bot(args.nickname, args.hostname, args.port,
                       args.ssl, args.channel)
     bot.start()
