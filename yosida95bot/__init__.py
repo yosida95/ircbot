@@ -120,3 +120,9 @@ class MessageSpec(object):
 
     def __str__(self):
         return self.__unicode__().encode(u'utf-8')
+
+
+@Yosida95Bot.add_handler(ur'^ping(\s+(.+))?$')
+def ping_handler(sender, channel,  message, matches):
+    if matches.group(2) is None or matches.group(2) == channel.get_nick():
+        sender(u'pong')
