@@ -1,5 +1,5 @@
 The MIT License (MIT)
-Copyright © 2013 yosida95 <kohei@yosida95.com>
+Copyright © 2013 yosida95 &lt;<kohei@yosida95.com>&gt;
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
