@@ -1,9 +1,10 @@
-#!/Users/yosida95/.virtualenvs/ircbot/bin/python
+#!/home/yosida95/.virtualenvs/ircbot/bin/python
 # -*- coding: utf-8 -*-
 
 import argparse
 import os.path
 import sys
+import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from yosida95bot import initialize
@@ -12,9 +13,9 @@ from yosida95bot.bot import Yosida95Bot
 
 def get_args():
     parser = argparse.ArgumentParser(description=u'yosida95bot')
-    parser.add_argument(u'--nickname', type=unicode, required=True)
-    parser.add_argument(u'--hostname', type=unicode, required=True)
-    parser.add_argument(u'--port', type=int, default=6667)
+    parser.add_argument(u'--nickname', type=unicode)
+    parser.add_argument(u'--hostname', type=unicode)
+    parser.add_argument(u'--port', type=int)
     parser.add_argument(u'--ssl', default=False, action=u'store_true')
     parser.add_argument(u'--channel', default=[], action=u'append')
 
@@ -24,7 +25,19 @@ def get_args():
 if __name__ == u'__main__':
     initialize()
 
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        u'config.json'
+    )
+    with open(config_path, u'r') as f:
+        config = json.load(f)
+
+    server = config.get("server", {})
+
     args = get_args()
-    bot = Yosida95Bot(args.nickname, args.hostname, args.port,
-                      args.ssl, args.channel)
+    bot = Yosida95Bot(args.nickname or config.get(u'nickname', u'ircbot'),
+                      args.hostname or server.get(u'hostname', u'localhost'),
+                      args.port or server.get(u'port', 6667),
+                      args.ssl or server.get(u'ssl', False),
+                      args.channel or server.get(u'channels', []))
     bot.start()

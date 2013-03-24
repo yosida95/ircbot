@@ -1,5 +1,12 @@
 {
     "sqlalchemy": {
         "url": "mysql://user:password@hostname:port/database"
-    }
+    },
+    "server": {
+        "hostname": "hostname",
+        "port": port,
+        "ssl": false,
+        "channels": ["#channel"]
+    },
+    "nickname": "nickname"
 }
