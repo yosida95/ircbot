@@ -10,7 +10,8 @@ from irc.connection import Factory
 
 from .models import (
     Session,
-    Message
+    Message,
+    UserGrade
 )
 
 
@@ -96,22 +97,13 @@ class Yosida95Bot(SingleServerIRCBot):
 
 class ChannelSpec(object):
 
-    def __init__(self, channel, nick, members):
+    def __init__(self, channel, nickname, users):
         self.channel = channel
-        self.nick = nick
-        self.members = members
-
-    def get_channel(self):
-        return self.channel
-
-    def get_nick(self):
-        return self.nick
-
-    def get_members(self):
-        return self.members
+        self.nickname = nickname
+        self.users = users
 
     def __unicode__(self):
-        return '%s: %s' % (self.channelr, u', '.join(self.members))
+        return '%s: %s' % (self.channelr, u', '.join(self.users))
 
     def __str__(self):
         return self.__unicode__().encode(u'utf-8')
@@ -121,3 +113,32 @@ class ChannelSpec(object):
 def ping_handler(sender, channel,  message, matches):
     if matches.group(2) is None or matches.group(2) == channel.get_nick():
         sender(u'pong')
+
+
+@Yosida95Bot.add_handler(ur'^(.+)(\+\+|--)$')
+def grade_handler(sender, channel, message, matches):
+    user = unicode(matches.group(1))
+    if user in channel.users:
+        session = Session()
+
+        grade = session.query(UserGrade).filter(
+            UserGrade.channel == channel.channel,
+            UserGrade.user == user
+        ).first()
+        if grade is None:
+            grade = UserGrade(channel.channel, user)
+            session.add(grade)
+
+        if matches.group(2) == u'++':
+            grade.increment()
+        else:
+            grade.decrement()
+
+        sender(u'%s: %d' % (user, grade.grade))
+
+        try:
+            session.commit()
+        except BaseException:
+            session.rollback()
+        finally:
+            session.close()
