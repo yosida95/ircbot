@@ -64,7 +64,7 @@ class UserGrade(Base):
         self.grade -= 1
 
     def __unicode__(self):
-        return '%s<%s>: %d' % (self.user, self.channel, self.text)
+        return '%s<%s>: %d' % (self.user, self.channel, self.grade)
 
     def __str__(self):
         return self.__unicode__().encode(u'utf-8')
