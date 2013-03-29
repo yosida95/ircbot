@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/yosida95/.virtualenvs/ircbot/bin/python
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -62,7 +62,7 @@ def main():
             message.message
         ) for message in query.all())
 
-        args.output.write(output + u'\n')
+        args.output.write((output + u'\n').encode(u'utf-8'))
 
         session.commit()
         session.close()
