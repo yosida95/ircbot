@@ -11,6 +11,8 @@ from .models import (
     Session
 )
 
+logging.basicConfig(level=logging.INFO)
+
 
 def initialize():
     config_path = os.path.join(

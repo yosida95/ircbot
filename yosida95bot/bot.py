@@ -14,6 +14,8 @@ from .models import (
     UserGrade
 )
 
+logging.basicConfig(level=logging.INFO)
+
 
 class Yosida95Bot(SingleServerIRCBot):
     handlers = {}
