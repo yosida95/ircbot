@@ -15,11 +15,6 @@ from .models import (
 )
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler)
-
-
 class Yosida95Bot(SingleServerIRCBot):
     handlers = {}
 
@@ -37,10 +32,13 @@ class Yosida95Bot(SingleServerIRCBot):
         )
 
     def on_welcome(self, connection, event):
+        logging.info(u'Welcome message received.')
         for channel in self._channels:
+            logging.info(u'Joining to channel named %s' % channel)
             connection.join(channel)
 
     def on_nicknameinuse(self, connection, event):
+        logging.info(u'nickname %s was used' % connection.get_nickname())
         connection.nick(connection.get_nickname() + u'_')
 
     def on_pubmsg(self, connection, event):
@@ -49,28 +47,42 @@ class Yosida95Bot(SingleServerIRCBot):
                           event.source.nick, event.arguments[0].strip())
         session.add(message)
 
+        logging.info(u'an message received. %s:%s:%s' % (
+            message.channel, message.user, message.message
+        ))
+
         for pattern, handlers in self.handlers.items():
             matches = pattern.match(message.message)
             if matches is None:
                 continue
 
+            logging.info(u'message matched %s' % pattern.pattern)
+
             for handler in handlers:
                 try:
+                    logging.info('calling handler named %s' % handler.__name__)
                     handler(lambda msg: connection.privmsg(event.target, msg),
                             ChannelSpec(event.target,
                                         connection.get_nickname(),
                                         self.channels[event.target].users()),
                             message, matches)
                 except BaseException as why:
-                    logging.error(unicode(why))
+                    logging.error(repr(why))
                     if len(handlers) is 1:
+                        logging.info(
+                            u'Removing handlers for %s' % pattern.pattern
+                        )
                         self.handlers.pop(pattern)
                     else:
+                        logging.info(
+                            u'Removing handler named %s' % handler.__name__
+                        )
                         handlers.remove(handler)
 
         try:
             session.commit()
-        except:
+        except BaseException as why:
+            logging.error(u'DB session commit failed with exception %r' % why)
             session.rollback()
         finally:
             session.close()
@@ -82,6 +94,10 @@ class Yosida95Bot(SingleServerIRCBot):
     @classmethod
     def add_handler(cls, _pattern):
         def receiver(handler):
+            logging.debug(u'A handler received named %s for %s' % (
+                handler.__name__, _pattern
+            ))
+
             pattern = re.compile(_pattern, re.UNICODE | re.IGNORECASE)
             if pattern in cls.handlers:
                 cls.handlers[pattern].append(handler)
