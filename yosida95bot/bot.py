@@ -129,7 +129,7 @@ class ChannelSpec(object):
 
 @Yosida95Bot.add_handler(ur'^ping(\s+(.+))?$')
 def ping_handler(sender, channel,  message, matches):
-    if matches.group(2) is None or matches.group(2) == channel.get_nick():
+    if matches.group(2) is None or matches.group(2) == channel.nickname():
         sender(u'pong')
 
 
