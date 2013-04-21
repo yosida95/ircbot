@@ -4,6 +4,13 @@ import functools
 import logging
 import re
 import ssl
+from wsgiref import simple_server
+
+import webob
+from jinja2 import (
+    Environment,
+    PackageLoader
+)
 
 from irc.bot import SingleServerIRCBot
 from irc.connection import Factory
@@ -16,9 +23,112 @@ from .models import (
 
 logging.basicConfig(level=logging.INFO)
 
+jinja2 = Environment(loader=PackageLoader(u'yosida95bot', u'templates'),
+                     autoescape=True, line_statement_prefix=u'#')
+
+
+class Router(object):
+
+    def __init__(self):
+        self.routing_table = {}
+
+    def add_route(self, pattern, view):
+        tokens, variables = self._tokenize(pattern)
+
+        table = self.routing_table
+        for token in tokens[:-1]:
+            if token not in table:
+                table[token] = {}
+            table = table[token]
+        else:
+            assert tokens[-1] not in table,\
+                u'This pattern is conflict with %s' % table[tokens[-1]][0]
+            table[tokens[-1]] = (pattern, variables, view)
+
+    def route(self, path):
+        if len(path) > 0 and path[0] == u'/':
+            path = path[1:]
+
+        if len(path) > 0 and path[-1] == u'/':
+            path = path[:-1]
+
+        matches = [(self.routing_table, [])]
+        for token in path.split(u'/'):
+            _matches = []
+            for table, variables in matches:
+                if token in table:
+                    _matches.append((table[token], variables))
+
+                for key in filter(
+                    lambda key: u'*' in key and (
+                        token.find(key[:-1]) is 0
+                        or token[token.rfind(key[1:]):] == key[1:]
+                    ),
+                    table.keys()
+                ):
+                    _matches.append((
+                        table[key],
+                        variables + [
+                            token if key == u'*'
+                            else token[:(len(key) - 1) * -1] if key[0] == u'*'
+                            else token[len(key) - 1:]
+                        ]
+                    ))
+            else:
+                matches = _matches
+        else:
+            assert 0 <= len(matches) < 2, u'More than 2 views hits'
+
+            if len(matches) is 1 and u'$' in matches[0][0]:
+                route = matches[0][0][u'$']
+                return (route[2], dict(zip(route[1], matches[0][1])))
+            else:
+                return None
+
+    def _tokenize(self, pattern):
+        if len(pattern) > 0 and pattern[0] == u'/':
+            pattern = pattern[1:]
+
+        if len(pattern) > 0 and pattern[-1] == u'/':
+            pattern = pattern[:-1]
+
+        tokens = []
+        variables = []
+        for _token in pattern.split(u'/'):
+            token = []
+            variable = []
+            depth = 0
+            for y in range(len(_token)):
+                if _token[y] == u'(':
+                    assert depth is 0, u'Over nested'
+                    depth += 1
+                    token.append(u'*')
+                elif _token[y] == u')':
+                    assert depth is 1, u'Over nested'
+                    variables.append(u''.join(variable))
+                    depth -= 1
+                else:
+                    if depth is 1:
+                        variable.append(_token[y])
+                        continue
+                    token.append(_token[y])
+            else:
+                assert depth is 0, u'Unbalanced brackets'
+                assert 0 <= token.count(u'*') < 2,\
+                    u'Count of variable in same directory must be 1'
+                assert token.count(u'*') is 0\
+                    or u'*' in (token[0], token[-1]),\
+                    u'Variable must be located start or end in directory'
+                tokens.append(u''.join(token))
+        else:
+            tokens.append(u'$')
+
+        return (tokens, variables)
+
 
 class Yosida95Bot(SingleServerIRCBot):
     handlers = {}
+    router = Router()
 
     def __init__(self, nickname, host, port=6667, use_ssl=False, channels=[]):
         self._channels = channels
@@ -27,6 +137,22 @@ class Yosida95Bot(SingleServerIRCBot):
             connect_factory = Factory(wrapper=ssl.wrap_socket)
         else:
             connect_factory = Factory()
+
+        def __call__(self, environment, response):
+            _request = webob.Request(environment)
+            _response = webob.Response()
+
+            view = self.route(_request.path_info)
+            if isinstance(view, tuple):
+                _request.match_dict = view[1]
+                view[0](_request, _response)
+            else:
+                _response.status_int = 404
+
+            return _response(environment, response)
+        setattr(self.router.__class__, u'__call__', __call__)
+        simple_server.make_server(u'0.0.0.0', 8080, self.router)\
+            .serve_forever()
 
         super(Yosida95Bot, self).__init__(
             [(host, port)], nickname, nickname,
@@ -110,6 +236,18 @@ class Yosida95Bot(SingleServerIRCBot):
             def wrapper(*args, **kwargs):
                 return handler(*args, **kwargs)
             return wrapper
+        return receiver
+
+    @classmethod
+    def add_web_handler(cls, path_pattern):
+        def receiver(handler):
+            logging.debug(u'A web handler recieved named %s for %s' % (
+                handler.__name__, path_pattern
+            ))
+
+            cls.router.add_route(path_pattern, handler)
+
+            return handler
         return receiver
 
 
