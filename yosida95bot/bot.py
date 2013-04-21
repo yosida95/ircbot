@@ -425,15 +425,27 @@ def githook(sender, request, response):
         response.status_int = 400
         return
     else:
-        sender(channel, u'=====コミット通知=====')
-        sender(channel, u'%s - %s' % (
-            payload[u'repository'][u'name'],
-            payload[u'repository'][u'homepage']
-        ))
+        try:
+            repository_name = payload[u'repository'][u'name']
+            repository_homepage = payload[u'repository'][u'homepage']
+            commits = [(
+                commit[u'author'][u'name'], commit[u'message'], commit[u'url']
+            ) for commit in payload[u'commits']]
+        except KeyError:
+            response.status_int = 400
+            return
+        else:
+            sender(channel, u'=====コミット通知=====')
 
-        for commit in payload[u'commits']:
-            sender(channel, u'--------------------')
-            sender(channel, u'Author : %s' % commit[u'author'][u'name'])
-            sender(channel, u'Message: %s' % commit[u'message'])
-            sender(channel, u'URL    : %s' % commit[u'url'])
-        sender(channel, u'=====コミット通知=====')
+            sender(channel, u'%s - %s' % (
+                repository_name,
+                repository_homepage
+            ))
+
+            for commit in commits:
+                sender(channel, u'--------------------')
+                sender(channel, u'Author : %s' % commit[0])
+                sender(channel, u'Message: %s' % commit[1])
+                sender(channel, u'URL    : %s' % commit[2])
+
+            sender(channel, u'=====コミット通知=====')
