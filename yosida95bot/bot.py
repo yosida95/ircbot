@@ -174,10 +174,16 @@ class Yosida95Bot(SingleServerIRCBot):
 
             logging.info(u'message matched %s' % pattern.pattern)
 
+            def sender(msg):
+                session.add(
+                    Message(event.target, connection.get_nickname(), msg)
+                )
+                connection.privmsg(event.target, msg)
+
             for handler in handlers:
                 try:
                     logging.info('calling handler named %s' % handler.__name__)
-                    handler(lambda msg: connection.privmsg(event.target, msg),
+                    handler(sender,
                             ChannelSpec(event.target,
                                         connection.get_nickname(),
                                         self.channels[event.target].users()),
