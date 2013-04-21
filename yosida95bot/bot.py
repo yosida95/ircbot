@@ -2,6 +2,7 @@
 
 import functools
 import logging
+import os
 import re
 import ssl
 import time
@@ -134,33 +135,17 @@ class Yosida95Bot(SingleServerIRCBot):
     router = Router()
 
     def __init__(self, nickname, host, port=6667, use_ssl=False, channels=[]):
-        self._channels = channels
+            self._channels = channels
 
-        if use_ssl:
-            connect_factory = Factory(wrapper=ssl.wrap_socket)
-        else:
-            connect_factory = Factory()
-
-        def __call__(self, environment, response):
-            _request = webob.Request(environment)
-            _response = webob.Response()
-
-            view = self.route(_request.path_info)
-            if isinstance(view, tuple):
-                _request.match_dict = view[1]
-                view[0](_request, _response)
+            if use_ssl:
+                connect_factory = Factory(wrapper=ssl.wrap_socket)
             else:
-                _response.status_int = 404
+                connect_factory = Factory()
 
-            return _response(environment, response)
-        setattr(self.router.__class__, u'__call__', __call__)
-        simple_server.make_server(u'0.0.0.0', 8080, self.router)\
-            .serve_forever()
-
-        super(Yosida95Bot, self).__init__(
-            [(host, port)], nickname, nickname,
-            connect_factory=connect_factory
-        )
+            super(Yosida95Bot, self).__init__(
+                [(host, port)], nickname, nickname,
+                connect_factory=connect_factory
+            )
 
     def on_welcome(self, connection, event):
         logging.info(u'Welcome message received.')
@@ -221,6 +206,33 @@ class Yosida95Bot(SingleServerIRCBot):
     def on_join(self, connection, event):
         if connection.get_nickname() in self.channels[event.target].opers():
             connection.mode(event.target, u'+o %s' % event.source.nick)
+
+    def start(self, *args, **kwargs):
+        pid = os.fork()
+        if pid == 0:
+            def __call__(self, environment, response):
+                _request = webob.Request(environment)
+                _response = webob.Response()
+
+                view = self.route(_request.path_info)
+                if isinstance(view, tuple):
+                    _request.match_dict = view[1]
+                    view[0](_request, _response)
+                else:
+                    _response.status_int = 404
+
+                return _response(environment, response)
+            setattr(self.router.__class__, u'__call__', __call__)
+
+            simple_server.make_server(u'0.0.0.0', 8080, self.router)\
+                .serve_forever()
+        else:
+            try:
+                super(Yosida95Bot, self).start(*args, **kwargs)
+            except KeyboardInterrupt:
+                os.kill(pid, 3)
+                self.disconnect()
+                self.die()
 
     @classmethod
     def add_handler(cls, _pattern):
