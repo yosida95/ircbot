@@ -348,7 +348,7 @@ def log_viewer(sender, request, response):
     query = session.query(Message).filter(
         Message.channel == u'#' + request.match_dict[u'channel']
     ).order_by(
-        sql.desc(Message.created_at)
+        sql.desc(Message.id)
     )
 
     if u'q' in request.GET:

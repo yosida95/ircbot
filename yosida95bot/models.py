@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import uuid
 from datetime import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -20,14 +19,13 @@ Base = declarative_base()
 class Message(Base):
     __tablename__ = u'message_log'
 
-    id = Column(Unicode(32), nullable=False, primary_key=True)
+    id = Column(Integer(), primary_key=True, autoincrement=True)
     channel = Column(Unicode(50), nullable=False)
     user = Column(Unicode(50), nullable=False)
     message = Column(Unicode(512), nullable=False)
     created_at = Column(DateTime(), nullable=False)
 
     def __init__(self, channel, user, message):
-        self.id = unicode(uuid.uuid4().hex)
         self.channel = channel
         self.user = user
         self.message = message
@@ -46,13 +44,12 @@ class UserGrade(Base):
         UniqueConstraint(u'channel', u'user'),
     )
 
-    id = Column(Unicode(32), nullable=False, primary_key=True)
+    id = Column(Integer(), primary_key=True, autoincrement=True)
     channel = Column(Unicode(50), nullable=False)
     user = Column(Unicode(50), nullable=False)
     grade = Column(Integer(), nullable=False)
 
     def __init__(self, channel, user):
-        self.id = unicode(uuid.uuid4().hex)
         self.channel = channel
         self.user = user
         self.grade = 0
