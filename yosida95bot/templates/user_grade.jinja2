@@ -1,0 +1,30 @@
+{% extends 'layout.jinja2' %}
+{%- block contents %}
+            <div class="row">
+                <div class="span12">
+                    <h1>ユーザーグレード</h1>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        # for user, grade in grades
+                            <tr>
+                                <td>{{ user }}</td>
+                                <td>{{ grade }}</td>
+                            </tr>
+                        # endfor
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>Grade</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+{%- endblock %}

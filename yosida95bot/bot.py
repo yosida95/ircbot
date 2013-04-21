@@ -336,9 +336,32 @@ def log_viewer(request, response):
 
     response.content_type = 'text/html; charset=utf-8'
     response.body = template.render({
+        u'active': u'log',
         u'channel': request.match_dict[u'channel'],
         u'log': log,
         u'current_page': page,
         u'last_page': last_page,
         u'pages': pages
+    }).encode(u'utf-8')
+
+
+@Yosida95Bot.add_web_handler(u'/(channel)/grade')
+def grade_viewer(request, response):
+    template = jinja2.get_template(u'user_grade.jinja2')
+
+    session = Session()
+    query = session.query(UserGrade).filter(
+        UserGrade.channel == u'#' + request.match_dict[u'channel']
+    ).order_by(
+        sql.desc(UserGrade.grade)
+    )
+    grades = [(row.user, row.grade) for row in query.all()]
+    session.commit()
+    session.close()
+
+    response.content_type = 'text/html; charset=utf-8'
+    response.body = template.render({
+        u'active': u'grade',
+        u'channel': request.match_dict[u'channel'],
+        u'grades': grades
     }).encode(u'utf-8')

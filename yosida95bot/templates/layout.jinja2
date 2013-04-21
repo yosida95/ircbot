@@ -44,8 +44,8 @@
                     <a href="/{{ channel }}" class="brand">yosida95bot#{{ channel }}</a>
                     <div class="collapse nav-collapse">
                         <ul class="nav">
-                            <li class="active"><a href="/{{ channel }}/log">チャットログ</a></li>
-                            <li><a href="/{{ channel }}/grade">グレード</a></li>
+                            <li{% if active == 'log' %} class="active"{% endif %}><a href="/{{ channel }}/log">チャットログ</a></li>
+                            <li{% if active == 'grade' %} class="active"{% endif %}><a href="/{{ channel }}/grade">グレード</a></li>
                         </ul>
                     </div>
                 </div>
