@@ -47,6 +47,10 @@
                             <li{% if active == 'log' %} class="active"{% endif %}><a href="/{{ channel }}/log">チャットログ</a></li>
                             <li{% if active == 'grade' %} class="active"{% endif %}><a href="/{{ channel }}/grade">グレード</a></li>
                         </ul>
+
+                        <form method="get" action="/{{ channel }}/log" class="navbar-search pull-right">
+                            <input type="text" name="q" class="seach-query" placeholder="チャットログ検索" />
+                        </form>
                     </div>
                 </div>
             </div>

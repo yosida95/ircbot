@@ -323,12 +323,22 @@ def log_viewer(request, response):
         sql.desc(Message.created_at)
     )
 
+    if u'q' in request.GET:
+        query = query.filter(*[
+            Message.message.like(u'%%%s%%' % q)
+            for q in request.GET[u'q'].split()
+        ])
+
+        last_page = 1
+    else:
+        all_count = query.count()
+        last_page = all_count // 30 + (0 if all_count % 30 is 0 else 1)
+
+        query = query.limit(30).offset(30 * (page - 1))
+
     log = [(
         message.user, message.message, message.created_at - delta
-    ) for message in query.limit(30).offset(30 * (page - 1))]
-
-    all_count = query.count()
-    last_page = all_count // 30 + (0 if all_count % 30 is 0 else 1)
+    ) for message in query.all()]
 
     session.commit()
     session.close()
