@@ -303,6 +303,12 @@ def grade_handler(sender, channel, message, matches):
             session.close()
 
 
+@Yosida95Bot.add_web_handler(u'/(channel)/')
+def home_view(request, response):
+    response.location = u'/%s/log' % request.match_dict[u'channel']
+    response.status_int = 302
+
+
 @Yosida95Bot.add_web_handler(u'/(channel)/log')
 def log_viewer(request, response):
     template = jinja2.get_template(u'chat_log.jinja2')
