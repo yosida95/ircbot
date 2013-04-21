@@ -4,6 +4,8 @@ import functools
 import logging
 import re
 import ssl
+import time
+from datetime import timedelta
 from wsgiref import simple_server
 
 import webob
@@ -11,6 +13,7 @@ from jinja2 import (
     Environment,
     PackageLoader
 )
+from sqlalchemy import sql
 
 from irc.bot import SingleServerIRCBot
 from irc.connection import Factory
@@ -298,3 +301,44 @@ def grade_handler(sender, channel, message, matches):
             session.rollback()
         finally:
             session.close()
+
+
+@Yosida95Bot.add_web_handler(u'/(channel)/log')
+def log_viewer(request, response):
+    template = jinja2.get_template(u'chat_log.jinja2')
+    delta = timedelta(seconds=time.timezone)
+    page = request.GET.get(u'page')
+    page = int(page) if isinstance(page, unicode) and page.isdigit() else 1
+
+    session = Session()
+    query = session.query(Message).filter(
+        Message.channel == u'#' + request.match_dict[u'channel']
+    ).order_by(
+        sql.desc(Message.created_at)
+    )
+
+    log = [(
+        message.user, message.message, message.created_at - delta
+    ) for message in query.limit(30).offset(30 * (page - 1))]
+
+    all_count = query.count()
+    last_page = all_count // 30 + (0 if all_count % 30 is 0 else 1)
+
+    session.commit()
+    session.close()
+
+    if last_page < 10 or page < 5:
+        pages = range(1, min(10, last_page) + 1)
+    elif last_page - page < 5:
+        pages = range(last_page - 9, last_page + 1)
+    else:
+        pages = range(page - 4, page + 6)
+
+    response.content_type = 'text/html; charset=utf-8'
+    response.body = template.render({
+        u'channel': request.match_dict[u'channel'],
+        u'log': log,
+        u'current_page': page,
+        u'last_page': last_page,
+        u'pages': pages
+    }).encode(u'utf-8')

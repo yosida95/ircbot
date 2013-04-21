@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="Content-Style-Type" content="text/css" />
+        <link rel="stylesheet" href="https://img.yosida95.com/Bootstrap/css/bootstrap.min.css" type="text/css" />
+        <meta http-equiv="Content-Script-Type" content="text/javascript" />
+        <script type="text/javascript" src="https://img.yosida95.com/jQuery/jquery-1.7.2.min.js"></script>
+        <script type="text/javascript" src="https://img.yosida95.com/Bootstrap/js/bootstrap.min.js"></script>
+        <meta name="copyright" content="Copyright (C) yosida95 All Rights Reserved." />
+        <meta name="Author" content="yosida95" />
+        <meta name="robots" content="ALL" />
+        <meta name="description" content=" " />
+        <meta http-equiv="keyword" content="" />
+        <meta name="keyword" content="" />
+        <title>yosida95bot#{{ channel }}</title>
+        <style type="text/css">
+            html, body {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                position: relative;
+                padding-bottom: 40px;
+            }
+            th {
+                text-align: center !important;
+            }
+            .right {
+                text-align: right;
+            }
+            .pagination {
+                width: 100%;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body style="padding-top: 60px;">
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <a href="/{{ channel }}" class="brand">yosida95bot#{{ channel }}</a>
+                    <div class="collapse nav-collapse">
+                        <ul class="nav">
+                            <li class="active"><a href="/{{ channel }}/log">チャットログ</a></li>
+                            <li><a href="/{{ channel }}/grade">グレード</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            {%- block contents %}{%- endblock %}
+
+            <div class="span12 right">
+                &copy; 2013 yosida95
+            </div>
+        </div>
+    </body>
+</html>
