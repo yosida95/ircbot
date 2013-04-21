@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import functools
+import json
 import logging
-import os
 import re
 import ssl
 import time
 from datetime import timedelta
-from wsgiref import simple_server
+from threading import Thread
+from wsgiref.simple_server import make_server
 
 import webob
 from jinja2 import (
@@ -174,16 +175,10 @@ class Yosida95Bot(SingleServerIRCBot):
 
             logging.info(u'message matched %s' % pattern.pattern)
 
-            def sender(msg):
-                session.add(
-                    Message(event.target, connection.get_nickname(), msg)
-                )
-                connection.privmsg(event.target, msg)
-
             for handler in handlers:
                 try:
                     logging.info('calling handler named %s' % handler.__name__)
-                    handler(sender,
+                    handler(lambda msg: self.sender(event.target, msg),
                             ChannelSpec(event.target,
                                         connection.get_nickname(),
                                         self.channels[event.target].users()),
@@ -213,32 +208,47 @@ class Yosida95Bot(SingleServerIRCBot):
         if connection.get_nickname() in self.channels[event.target].opers():
             connection.mode(event.target, u'+o %s' % event.source.nick)
 
+    def sender(self, channel, msg):
+        session = Session()
+        session.add(
+            Message(channel, self.connection.get_nickname(), msg)
+        )
+        self.connection.privmsg(channel, msg)
+        try:
+            session.commit()
+        except BaseException:
+            session.rollback()
+        finally:
+            session.close()
+
     def start(self, *args, **kwargs):
-        pid = os.fork()
-        if pid == 0:
-            def __call__(self, environment, response):
-                _request = webob.Request(environment)
-                _response = webob.Response()
+        sender = self.sender
 
-                view = self.route(_request.path_info)
-                if isinstance(view, tuple):
-                    _request.match_dict = view[1]
-                    view[0](_request, _response)
-                else:
-                    _response.status_int = 404
+        def __call__(self, environment, response):
+            _request = webob.Request(environment)
+            _response = webob.Response()
 
-                return _response(environment, response)
-            setattr(self.router.__class__, u'__call__', __call__)
+            view = self.route(_request.path_info)
+            if isinstance(view, tuple):
+                _request.match_dict = view[1]
+                view[0](sender, _request, _response)
+            else:
+                _response.status_int = 404
 
-            simple_server.make_server(u'0.0.0.0', 8080, self.router)\
-                .serve_forever()
-        else:
-            try:
-                super(Yosida95Bot, self).start(*args, **kwargs)
-            except KeyboardInterrupt:
-                os.kill(pid, 3)
-                self.disconnect()
-                self.die()
+            return _response(environment, response)
+        setattr(self.router.__class__, u'__call__', __call__)
+
+        thread = Thread(
+            target=lambda *args: make_server(*args).serve_forever(),
+            args=(u'0.0.0.0', 8080, self.router)
+        )
+        thread.daemon = True
+        thread.start()
+
+        try:
+            super(Yosida95Bot, self).start(*args, **kwargs)
+        except KeyboardInterrupt:
+            self.disconnect()
 
     @classmethod
     def add_handler(cls, _pattern):
@@ -322,13 +332,13 @@ def grade_handler(sender, channel, message, matches):
 
 
 @Yosida95Bot.add_web_handler(u'/(channel)/')
-def home_view(request, response):
+def home_view(sender, request, response):
     response.location = u'/%s/log' % request.match_dict[u'channel']
     response.status_int = 302
 
 
 @Yosida95Bot.add_web_handler(u'/(channel)/log')
-def log_viewer(request, response):
+def log_viewer(sender, request, response):
     template = jinja2.get_template(u'chat_log.jinja2')
     delta = timedelta(seconds=time.timezone)
     page = request.GET.get(u'page')
@@ -380,7 +390,7 @@ def log_viewer(request, response):
 
 
 @Yosida95Bot.add_web_handler(u'/(channel)/grade')
-def grade_viewer(request, response):
+def grade_viewer(sender, request, response):
     template = jinja2.get_template(u'user_grade.jinja2')
 
     session = Session()
@@ -399,3 +409,31 @@ def grade_viewer(request, response):
         u'channel': request.match_dict[u'channel'],
         u'grades': grades
     }).encode(u'utf-8')
+
+
+@Yosida95Bot.add_web_handler(u'/(channel)/git_hook')
+def githook(sender, request, response):
+    if request.method != u'POST':
+        response.status_int = 404
+        return
+
+    channel = u'#' + request.match_dict[u'channel']
+
+    try:
+        payload = json.loads(request.body)
+    except ValueError:
+        response.status_int = 400
+        return
+    else:
+        sender(channel, u'=====コミット通知=====')
+        sender(channel, u'%s - %s' % (
+            payload[u'repository'][u'name'],
+            payload[u'repository'][u'homepage']
+        ))
+
+        for commit in payload[u'commits']:
+            sender(channel, u'--------------------')
+            sender(channel, u'Author : %s' % commit[u'author'][u'name'])
+            sender(channel, u'Message: %s' % commit[u'message'])
+            sender(channel, u'URL    : %s' % commit[u'url'])
+        sender(channel, u'=====コミット通知=====')
